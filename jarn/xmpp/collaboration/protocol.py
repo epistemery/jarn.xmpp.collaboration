@@ -178,8 +178,17 @@ class DifferentialSyncronisationHandler(XMPPHandler):
         diff = iq.patch.children[0]
         patches = self.dmp.patch_fromText(diff)
         shadow = self.shadow_copies[node]
+        # hack fruehwir: somehow linebreaks are encoded as \r - but  
+        #  not in all cases and (confusingly) not in both shadow copy and patch (!!)
+        #  which creates a digest mismatch
+        #  so we purge shadow copy and new_text of \r's in order to
+        #  get our patches processed. this is not very safe and elegant, but
+        #  it seems to do the trick... 
+        shadow = shadow.replace ( "\r", "" )
 
         (new_text, res) = self.dmp.patch_apply(patches, shadow)
+        # hack fruehwir: see above
+        new_text = new_text.replace ( "\r", "" )
         if False in res:
             response = toResponse(iq, u'error')
             response.addElement((NS_CE, u'error'), content='Error applying patch.')
